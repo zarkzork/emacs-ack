@@ -79,6 +79,8 @@
 
 (defun ack-buffer ()
   (save-excursion
+    (when (get-buffer ack-buffer-name)
+      (kill-buffer ack-buffer-name))
     (let ((buffer (get-buffer-create ack-buffer-name)))
       (set-buffer buffer)
       (toggle-read-only -1)
