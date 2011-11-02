@@ -4,7 +4,6 @@
 ;; Command for using ack on current project. Project asumed to be
 ;; current git repo. Arguments to M-x ack is passed directly to ack.
 ;;
-;; todo: add highlightning of search pattern.
 ;;
 ;; Mit licensed © Vladimir Terekhov
 
@@ -15,6 +14,7 @@
 (defvar ack-command "ack-grep" 
   "*Ack command name. Defaults to `ack` on mac and `ack-grep` on
    debian and ubuntu distros. Default value `ack-grep`.")
+
 (defvar ack-highlight-in-buffer t
   "*if not nil result will be highlighted with highlight-regexp when
    oppened in buffer")
@@ -23,22 +23,40 @@
 (defvar ack-mode-hook nil)
 (defvar ack-mode-map
   (let ((map (make-keymap)))
-    (define-key map (kbd "C-o") 'ack-open-file)
+    (define-key map (kbd "C-o") 'ack-open-file-other-window)
     (define-key map (kbd "RET") 'ack-open-file)
     (define-key map (kbd "C-j") 'ack-open-file)
     map))
 
+(defun ack-open-file-other-window ()
+  "When cursor is under ack match opens file on matched line in other window."
+  (interactive)
+  (let ((file-and-line (ack-get-file-and-line)))
+    (find-file-other-window (car file-and-line))
+    (goto-line (cadr file-and-line))
+    (ack-higlight-result)
+    (select-window (previous-window))))
+
 (defun ack-open-file ()
   "When cursor is under ack match opens file on matched line."
   (interactive)
+  (let ((file-and-line (ack-get-file-and-line)))
+    (find-file (car file-and-line))
+    (goto-line (cadr file-and-line))
+    (ack-higlight-result)))
+
+(defun ack-get-file-and-line ()
+  "returns list of file num and line number on line under point."
   (let ((line (thing-at-point 'line)))
       (string-match "^\\([^:]+\\):\\([0-9]+\\):" line)
-      (let ((file-name (match-string 1 line))
-            (line-num (string-to-number (match-string 2 line))))
-        (find-file file-name)
-        (goto-line line-num)
-        (if ack-highlight-in-buffer
-            (highlight-regexp ack-search-pattern)))))
+      (list (match-string 1 line) ;; file-name
+            (string-to-number (match-string 2 line))))) ;; file-number
+
+(defun ack-higlight-result ()
+  (if ack-highlight-in-buffer
+      (progn
+        (hi-lock-mode -1)
+        (highlight-regexp ack-search-pattern))))
 
 (defun ack-search-pattern-token (bounds)
   (re-search-forward ack-search-pattern bounds))
