@@ -11,7 +11,7 @@
 (defconst ack-buffer-name "*ack*")
 
 ;; Customizible variables
-(defvar ack-command "ack-grep" 
+(defvar ack-command "ack-grep"
   "*Ack command name. Defaults to `ack` on mac and `ack-grep` on
    debian and ubuntu distros. Default value `ack-grep`.")
 
@@ -60,15 +60,15 @@
 
 (defun ack-search-pattern-token (bounds)
   (re-search-forward ack-search-pattern bounds))
-        
+
 (defun ack-mode ()
   "Mode for working with ack search results."
   (interactive)
   (kill-all-local-variables)
   (setq major-mode 'ack-mode)
-  (setq mode-name "ack") 
+  (setq mode-name "ack")
   (use-local-map ack-mode-map)
-  (setq font-lock-defaults 
+  (setq font-lock-defaults
         '((("\\(^[/a-zA-Z_.]+/\\)" (0
                                     (prog1 ()
                                       (compose-region (match-beginning 1)
@@ -85,9 +85,9 @@
 
 (defun find-git-root-dir (current-dir)
   "Finds directory containing .git in pwd"
-  (let (dir) 
+  (let (dir)
     (mapc
-     (lambda (item) 
+     (lambda (item)
        (when (string= item git-dir) (setq dir current-dir)))
      (directory-files current-dir))
     (cond
@@ -107,22 +107,25 @@
       buffer)))
 
 (defun get-query-from-ack-args (ack-arg)
-  (string-match 
+  (string-match
    "\\('\\([^']+\\)'\\|\"\\([^\"]+\\)\"\\|\\(\\<[^ ]+\\>\\)\\) *$"
    ack-args)
   (or (match-string 2 ack-args)
       (match-string 3 ack-args)
       (match-string 4 ack-args)))
 
-(defun ack (ack-args) 
+(defun ack (ack-args)
   "Run ack with args in current git project."
   (interactive "sack ")
   (setq ack-search-pattern (get-query-from-ack-args ack-args))
   (let ((git-root (find-git-root-dir "."))
-        (args (list ack-command nil (list ack-buffer-name t) nil ack-args))
+        (args (list ack-command ack-buffer-name ack-command "--nobreak" "--nocolor" "--noheading" "--nopager" "--flush" ack-args))
         (buffer (ack-buffer)))
-    (when git-root (setq args (append args (list git-root))))
-    (apply 'call-process-shell-command args)
+    (if (equal current-prefix-arg nil)
+        (when git-root (setq args (append args (list git-root))))
+      (setq args (append args (list (expand-file-name ".")))))
+    (print args)
+    (apply 'start-process args)
     (switch-to-buffer buffer)
     (goto-char (point-min))))
 
