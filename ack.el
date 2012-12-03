@@ -114,16 +114,23 @@
       (match-string 3 ack-args)
       (match-string 4 ack-args)))
 
+(defun get-params-from-args (ack-arg)
+  (let ((_ (string-match "^\\(\\(?:--[-a-zA-Z0-9]+ *\\)\\{0,\\}\\)\\(.*\\)$" ack-arg))
+        (pattern (match-string 2  ack-arg))
+        (arguments (split-string (match-string 1  ack-arg) " " t)))
+    (append arguments (cons pattern nil))))
+
 (defun ack (ack-args)
   "Run ack with args in current git project."
   (interactive "sack ")
   (setq ack-search-pattern (get-query-from-ack-args ack-args))
   (let ((git-root (find-git-root-dir "."))
-        (args (list ack-command ack-buffer-name ack-command "--nobreak" "--nocolor" "--noheading" "--nopager" "--flush" ack-args))
+        (args (append (list ack-command ack-buffer-name ack-command "--nobreak" "--nocolor" "--noheading" "--nopager" "--flush") (get-params-from-args ack-args)))
         (buffer (ack-buffer)))
     (if (equal current-prefix-arg nil)
         (when git-root (setq args (append args (list git-root))))
       (setq args (append args (list (expand-file-name ".")))))
+
     (print args)
     (apply 'start-process args)
     (switch-to-buffer buffer)
